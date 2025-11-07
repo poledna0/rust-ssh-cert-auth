@@ -1,6 +1,8 @@
 use std::{io::{self, Write}, u8};
 
 pub fn interface(){
+    let logado: bool = false;
+
     let mut buffer: String = String::new();
 
     println!("---------------------------------------------------------");
@@ -29,17 +31,24 @@ pub fn interface(){
 
             match valor_convertido {
                 1 => {
-                    println!("1");
-                }
+                    if logado{
+                        println!("Você ja fez o login");
+                    }
+
+                },
 
                 2 => {
-                        println!("2");
-                }
+                
+                    criar_nova_conta();
+                },
 
                 3 => {
                         println!("3");
-                }
-                _=>{println!("Valor invalido")}
+                },
+
+                _=>{
+                    println!("Valor invalido")
+                },
             }
         }
         Err(e) => {
@@ -48,6 +57,8 @@ pub fn interface(){
         }
     }
 
+}
 
+fn criar_nova_conta(){
 
 }
