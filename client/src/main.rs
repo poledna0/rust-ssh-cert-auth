@@ -2,6 +2,12 @@ use std::io::{self, Write};
 use rpassword::read_password;
 use sha2::{Sha256, Digest};
 use serde::Serialize;
+use rand::Rng;
+use koibumi_base32::encode;
+use totp_lite::{totp_custom, Sha1, DEFAULT_STEP};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+
 
 
 // para colocar no db
@@ -10,7 +16,16 @@ struct CreateUser {
     username: String,
     password_hash: String,
     pubkey: String,
+    mfa_secret: String,
 }
+
+
+fn gerar_segredo() -> String {
+    let mut rng = rand::thread_rng();
+    let bytes: [u8; 16] = rng.r#gen();
+    encode(&bytes)
+}
+
 
 fn interface(){
 
@@ -103,18 +118,25 @@ fn criar_nova_conta(){
             let pubkey = pubkey.trim().to_string();
 
             if !pubkey.is_empty() {
+                // generate MFA secret and compute current code to show the user
+                let mfa_secret = gerar_segredo();
+                let seconds = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+                let mfa_code = totp_custom::<Sha1>(DEFAULT_STEP, 6, &koibumi_base32::decode(&mfa_secret).unwrap(), seconds);
+
+                println!("\nMFA secret (cole no autenticador): {}", mfa_secret);
+                println!("Código atual (para adicionar agora): {}", mfa_code);
+
                 // instanciar o struct CreateUser com os valores
-                let user = CreateUser { username: nome_usuario.clone(), password_hash: hash_hex, pubkey };
+                let user = CreateUser { username: nome_usuario.clone(), password_hash: hash_hex, pubkey, mfa_secret };
 
                 // transformar em JSON
                 let body = serde_json::to_string(&user).expect("erro serializando JSON");
 
-                // ureq::post("URL") -> cria uma requisição POST para o endpoint q eu quero e o .set(...) adiciona um header HTTP, informando ao servidor que o corpo será JSON
-                match ureq::post("http://127.0.0.1:8080/create_user").set("Content-Type", "application/json").send_string(&body) { // envia o conteúdo da variável body como texto no corpo do POST
-                    // retorna um Result<Response, Error>
+                // send POST including MFA secret
+                match ureq::post("http://127.0.0.1:8080/create_user").set("Content-Type", "application/json").send_string(&body) {
                     Ok(resp) => {
                         if resp.status() == 200 {
-                            println!("\nSenha e Chave Pública confirmadas. Usuário criado no signer.");
+                            println!("\nSenha, Chave Pública e MFA enviada. Usuário criado no signer.");
                         } else {
                             eprintln!("Erro do servidor");
                         }

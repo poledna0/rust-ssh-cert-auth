@@ -8,3 +8,8 @@ actix-web = "4"
 serde = { version = "1.0", features = ["derive"] }
 rusqlite = "0.29"
 serde_json = "1.0"
+
+totp-lite = "2.0.1"
+koibumi-base32 = "0.0.3"
+rand = "0.8"
+
