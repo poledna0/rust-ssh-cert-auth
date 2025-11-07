@@ -12,7 +12,7 @@ struct CreateUser {
     pubkey: String,
 }
 
-pub fn interface(){
+fn interface(){
 
     let logado: bool = false;
 
@@ -103,28 +103,30 @@ fn criar_nova_conta(){
             let pubkey = pubkey.trim().to_string();
 
             if !pubkey.is_empty() {
+                // instanciar o struct CreateUser com os valores
                 let user = CreateUser { username: nome_usuario.clone(), password_hash: hash_hex, pubkey };
 
-                // enviar para o signer via POST (HTTP simples para localhost)
+                // transformar em JSON
                 let body = serde_json::to_string(&user).expect("erro serializando JSON");
-                match ureq::post("http://127.0.0.1:8080/create_user").set("Content-Type", "application/json").send_string(&body) {
+
+                // ureq::post("URL") -> cria uma requisição POST para o endpoint q eu quero e o .set(...) adiciona um header HTTP, informando ao servidor que o corpo será JSON
+                match ureq::post("http://127.0.0.1:8080/create_user").set("Content-Type", "application/json").send_string(&body) { // envia o conteúdo da variável body como texto no corpo do POST
+                    // retorna um Result<Response, Error>
                     Ok(resp) => {
                         if resp.status() == 200 {
                             println!("\nSenha e Chave Pública confirmadas. Usuário criado no signer.");
                         } else {
-                            let txt = resp.into_string().unwrap_or_else(|_| "(sem corpo)".to_string());
-                            eprintln!("Erro do servidor: {}", txt);
+                            eprintln!("Erro do servidor");
                         }
                     }
                     Err(e) => eprintln!("Erro ao contactar o signer: {}", e),
                 }
-
                 break;
             } else {
-                println!("ERRO: A chave pública está vazia. Por favor, cole uma chave válida.");
+                println!("ERRO! A chave pública está vazia. Por favor, cole uma chave válida.");
             }
         } else {
-            println!("ERRO: As senhas não são iguais ou uma delas está vazia.");
+            println!("ERRO! As senhas não são iguais ou uma delas está vazia.");
         }
     }
 }
