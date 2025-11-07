@@ -17,6 +17,7 @@ pub fn inicializar_db() -> Result<()> {
     let conn = Connection::open("dados.db")?;
 
     // cria a tabela (se ela ainda não existir)
+    println!("[db] inicializar_db: abrindo/criando dados.db e garantindo tabela usuarios");
     conn.execute(
         "CREATE TABLE IF NOT EXISTS usuarios (
             id              INTEGER PRIMARY KEY,
@@ -33,15 +34,25 @@ pub fn inicializar_db() -> Result<()> {
 
 #[allow(dead_code)]
 pub fn criar_usuario(username: &str, password_hash: &str, pub_key: &str, mfa_secret: &str) -> Result<()> {
+    println!("[db] criar_usuario: username='{}' pubkey='{}' mfa_secret='{}'", username, pub_key, mfa_secret);
     let conn = Connection::open("dados.db")?;
 
-    conn.execute(
+    let res = conn.execute(
         "INSERT INTO usuarios (nome_usuario, senha_hash, chave_publica, mfa_secret) 
          VALUES (?1, ?2, ?3, ?4)",
         [username, password_hash, pub_key, mfa_secret],
-    )?;
+    );
 
-    Ok(())
+    match res {
+        Ok(rows) => {
+            println!("[db] criar_usuario: inseriu {} linha(s)", rows);
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("[db] criar_usuario: erro ao inserir usuario: {}", e);
+            Err(e)
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -49,7 +60,7 @@ pub fn buscar_usuario_para_login(username: &str) -> Result<Usuario> {
     let conn = Connection::open("dados.db")?;
 
     let mut stmt = conn.prepare(
-        "SELECT id, nome_usuario, senha_hash, chave_publica FROM usuarios WHERE nome_usuario = ?1",
+        "SELECT id, nome_usuario, senha_hash, chave_publica, mfa_secret FROM usuarios WHERE nome_usuario = ?1",
     )?;
 
     let usuario_result = stmt.query_row([username], |row| {
@@ -61,6 +72,11 @@ pub fn buscar_usuario_para_login(username: &str) -> Result<Usuario> {
             mfa_secret: row.get(4)?,
         })
     });
+
+    match &usuario_result {
+        Ok(u) => println!("[db] buscar_usuario_para_login: encontrado user='{}' id={}", u.nome_usuario, u.id),
+        Err(e) => eprintln!("[db] buscar_usuario_para_login: nenhum usuario encontrado ou erro: {}", e),
+    }
 
     usuario_result
 }
