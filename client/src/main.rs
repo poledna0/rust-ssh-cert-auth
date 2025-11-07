@@ -162,7 +162,6 @@ fn login_conta() {
     let result = hasher.finalize();
     let hash_hex = format!("{:x}", result);
 
-
     let req = LoginReq { username: &username, password_hash: &hash_hex };
     let body = serde_json::to_string(&req).expect("erro serializando JSON");
 

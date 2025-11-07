@@ -9,8 +9,6 @@ pub struct Usuario {
     pub mfa_secret: String,
 }
 
-
-
 pub fn inicializar_db() -> Result<()> {
     //Abre a conexão ou cria o arquivo dados.db se não existir
     let conn = Connection::open("dados.db")?;

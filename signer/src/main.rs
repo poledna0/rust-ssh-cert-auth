@@ -32,7 +32,6 @@ struct ChavePublicaRequest {
     pubkey: String, // a chave publica ssh do usuario
 }
 
-
 #[post("/create_user")]
 async fn create_user(info: web::Json<CreateUser>) -> impl Responder {
     println!("[http] POST /create_user payload: username='{}' mfa_secret='{}'", info.username, info.mfa_secret);
@@ -87,7 +86,6 @@ async fn login(info: web::Json<LoginRequest>) -> impl Responder {
     }
 }
 
-
 #[post("/verify_mfa")]
 async fn verify_mfa(info: web::Json<MfaRequest>) -> impl Responder {
     // mesma lore do db
@@ -96,7 +94,6 @@ async fn verify_mfa(info: web::Json<MfaRequest>) -> impl Responder {
         eprintln!("[http] verify_mfa: erro inicializando DB: {}", e);
         return HttpResponse::InternalServerError().body(format!("Erro no DB: {}", e));
     }
-
 
     match db::buscar_usuario_para_login(&info.username) {
         Ok(u) => {
