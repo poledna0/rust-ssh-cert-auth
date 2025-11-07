@@ -30,3 +30,7 @@ O usuário gera uma chave ou envia para o *signer*, faz autenticação MFA, o *v
 Com esse certificado, o usuário pode se conectar ao servidor SSH.
 
 ---
+
+```bash
+sudo apt install libsqlite3-dev
+```

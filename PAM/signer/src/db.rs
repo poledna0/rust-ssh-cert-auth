@@ -21,8 +21,8 @@ pub fn inicializar_db() -> Result<()> {
             senha_hash      TEXT NOT NULL,
             chave_publica   TEXT NOT NULL
         )",
-        [], 
-    )?; 
+        [],
+    )?;
 
     Ok(())
 }
@@ -30,7 +30,7 @@ pub fn inicializar_db() -> Result<()> {
 #[allow(dead_code)]
 pub fn criar_usuario(username: &str, password_hash: &str, pub_key: &str) -> Result<()> {
     let conn = Connection::open("dados.db")?;
-    
+
     conn.execute(
         "INSERT INTO usuarios (nome_usuario, senha_hash, chave_publica) 
          VALUES (?1, ?2, ?3)",
@@ -43,7 +43,7 @@ pub fn criar_usuario(username: &str, password_hash: &str, pub_key: &str) -> Resu
 #[allow(dead_code)]
 pub fn buscar_usuario_para_login(username: &str) -> Result<Usuario> {
     let conn = Connection::open("dados.db")?;
-    
+
     let mut stmt = conn.prepare(
         "SELECT id, nome_usuario, senha_hash, chave_publica FROM usuarios WHERE nome_usuario = ?1",
     )?;
@@ -56,6 +56,6 @@ pub fn buscar_usuario_para_login(username: &str) -> Result<Usuario> {
             chave_publica: row.get(3)?,
         })
     });
-    
+
     usuario_result
 }

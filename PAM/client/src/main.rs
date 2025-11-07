@@ -1,11 +1,19 @@
-use std::{io::{self, Write}, u8};
+use std::io::{self, Write};
 use rpassword::read_password;
 use sha2::{Sha256, Digest};
+use serde::Serialize;
 
-use crate::db;
 
+// para colocar no db
+#[derive(Serialize)]
+struct CreateUser {
+    username: String,
+    password_hash: String,
+    pubkey: String,
+}
 
 pub fn interface(){
+
     let logado: bool = false;
 
     let mut buffer: String = String::new();
@@ -21,18 +29,15 @@ pub fn interface(){
 
     std::io::stdin().read_line(&mut buffer).expect("erro a ler a linha1");
 
-
     let entrada = buffer.trim().parse::<u8>();
 
-    // um try em rust :o 
+    //try
     match entrada {
-
 
         // depois de saber se deu certo e a pessoa colocou um numero e nao uma coisa que não pode ser convertida
         // temos q tratar as opcoes para qual func vai ser levada
         
         Ok(valor_convertido) => {
-
 
             match valor_convertido {
                 1 => {
@@ -42,10 +47,7 @@ pub fn interface(){
 
                 },
 
-                2 => {
-                
-                    criar_nova_conta();
-                },
+                2 => criar_nova_conta(),
 
                 3 => {
                         println!("3");
@@ -63,21 +65,19 @@ pub fn interface(){
     }
 
 }
-
 fn criar_nova_conta(){
-    
-    print!("\nDigite um usuario nome de usuario --> ");
+
+    print!("Digite um usuario nome de usuario --> ");
     io::stdout().flush().expect("Erro a dar flush no print criar conta1");
-
+    
     let mut nome_usuario = String::new();
-
-    std::io::stdin().read_line(&mut nome_usuario).expect("erro a ler a linha2");
+    io::stdin().read_line(&mut nome_usuario).expect("erro a ler a linha2");
+    let nome_usuario = nome_usuario.trim().to_string();
 
     loop {
         print!("\nDigite uma senha --> ");
         io::stdout().flush().expect("erro ao dar flush");
 
-        // leitura escondida
         let senha = read_password().expect("erro lendo senha");
 
         print!("\nConfirme sua senha --> ");
@@ -86,17 +86,13 @@ fn criar_nova_conta(){
         let csenha = read_password().expect("erro lendo senha");
 
         if senha == csenha && !senha.is_empty() {
-
-            // cria objeto de cripto
+            // cria o objeto que faz o hash da senha
             let mut hasher = Sha256::new();
-
-            // alimenta ele com os &[u8]
+            // alimenta o hasher com a senha em &[u8]
             hasher.update(senha.as_bytes());
-
-            // faz o hash deles e finaliza o objeto
+            // finaliza o objeto haser e obtém o resultado
             let result = hasher.finalize();
-
-            // muda para de by para hexa
+            // converte o resultado para uma string hexadecimal
             let hash_hex = format!("{:x}", result);
 
             print!("\nCole sua chave pública --> ");
@@ -106,21 +102,33 @@ fn criar_nova_conta(){
             io::stdin().read_line(&mut pubkey).expect("erro ao ler a linha");
             let pubkey = pubkey.trim().to_string();
 
-            if !pubkey.is_empty(){
-                match db::criar_usuario(&nome_usuario, &hash_hex, &pubkey) {
-                        Ok(_) => {},
-                        Err(e) => eprintln!("ERRO ao add usuario no BD: {}", e),
-                    }
+            if !pubkey.is_empty() {
+                let user = CreateUser { username: nome_usuario.clone(), password_hash: hash_hex, pubkey };
 
-                println!("\nSenha e Chave Pública confirmadas. Usuário criado.");
+                // enviar para o signer via POST (HTTP simples para localhost)
+                let body = serde_json::to_string(&user).expect("erro serializando JSON");
+                match ureq::post("http://127.0.0.1:8080/create_user").set("Content-Type", "application/json").send_string(&body) {
+                    Ok(resp) => {
+                        if resp.status() == 200 {
+                            println!("\nSenha e Chave Pública confirmadas. Usuário criado no signer.");
+                        } else {
+                            let txt = resp.into_string().unwrap_or_else(|_| "(sem corpo)".to_string());
+                            eprintln!("Erro do servidor: {}", txt);
+                        }
+                    }
+                    Err(e) => eprintln!("Erro ao contactar o signer: {}", e),
+                }
 
                 break;
             } else {
                 println!("ERRO: A chave pública está vazia. Por favor, cole uma chave válida.");
             }
-            
         } else {
             println!("ERRO: As senhas não são iguais ou uma delas está vazia.");
         }
     }
+}
+
+fn main() {
+    interface();
 }
