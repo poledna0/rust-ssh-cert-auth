@@ -19,10 +19,7 @@ fn gerar_segredo() -> String {
     let bytes: [u8; 16] = rng.r#gen();
     encode(&bytes)
 }
-
 fn interface(){
-
-    let logado: bool = false;
 
     let mut buffer: String = String::new();
 
@@ -49,9 +46,7 @@ fn interface(){
 
             match valor_convertido {
                 1 => {
-                    if logado{
-                        println!("Você ja fez o login");
-                    }
+                    login_conta();
 
                 },
 
@@ -114,7 +109,6 @@ fn criar_nova_conta(){
                 // gera codigo secreto da mfa
                 let mfa_secret = gerar_segredo();
                 //let seconds = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-                //let mfa_code = totp_custom::<Sha1>(DEFAULT_STEP, 6, &koibumi_base32::decode(&mfa_secret).unwrap(), seconds);
 
                 println!("\nMFA secret (cole no autenticador): {}", mfa_secret);
                 //println!("Código atual (para adicionar agora): {}", mfa_code);
@@ -125,7 +119,7 @@ fn criar_nova_conta(){
                 // transformar em JSON
                 let body = serde_json::to_string(&user).expect("erro serializando JSON");
 
-                // send POST including MFA secret
+                // enviar para o signer (inclui mfa_secret)
                 match ureq::post("http://127.0.0.1:8080/create_user").set("Content-Type", "application/json").send_string(&body) {
                     Ok(resp) => {
                         if resp.status() == 200 {
@@ -136,6 +130,7 @@ fn criar_nova_conta(){
                     }
                     Err(e) => eprintln!("Erro ao contactar o signer: {}", e),
                 }
+
                 break;
             } else {
                 println!("ERRO! A chave pública está vazia. Por favor, cole uma chave válida.");
@@ -143,6 +138,70 @@ fn criar_nova_conta(){
         } else {
             println!("ERRO! As senhas não são iguais ou uma delas está vazia.");
         }
+    }
+}
+
+fn login_conta() {
+    print!("Digite o nome de usuário --> ");
+    io::stdout().flush().expect("Erro a dar flush");
+    let mut username = String::new();
+    io::stdin().read_line(&mut username).expect("erro a ler a linha");
+    let username = username.trim().to_string();
+
+    print!("Digite a senha --> ");
+    io::stdout().flush().expect("Erro a dar flush");
+    let senha = read_password().expect("erro lendo senha");
+
+    // Hash da senha
+    let mut hasher = Sha256::new();
+    hasher.update(senha.as_bytes());
+    let result = hasher.finalize();
+    let hash_hex = format!("{:x}", result);
+
+    // enviar username e hash para o signer (/login)
+    #[derive(serde::Serialize)]
+    struct LoginReq<'a> {
+        username: &'a str,
+        password_hash: &'a str,
+    }
+
+    let req = LoginReq { username: &username, password_hash: &hash_hex };
+    let body = serde_json::to_string(&req).expect("erro serializando JSON");
+
+    match ureq::post("http://127.0.0.1:8080/login").set("Content-Type", "application/json").send_string(&body) {
+        Ok(resp) => {
+            if resp.status() == 200 {
+                println!("Usuário e senha OK. Agora insira o código MFA do seu autenticador.");
+                print!("Código MFA (6 dígitos) --> ");
+                io::stdout().flush().expect("Erro a dar flush");
+                let mut codigo = String::new();
+                io::stdin().read_line(&mut codigo).expect("erro a ler codigo");
+                let codigo = codigo.trim().to_string();
+
+                #[derive(serde::Serialize)]
+                struct MfaReq<'a> {
+                    username: &'a str,
+                    code: &'a str,
+                }
+
+                let mfa = MfaReq { username: &username, code: &codigo };
+                let mfa_body = serde_json::to_string(&mfa).expect("erro serializando mfa");
+
+                match ureq::post("http://127.0.0.1:8080/verify_mfa").set("Content-Type", "application/json").send_string(&mfa_body) {
+                    Ok(mresp) => {
+                        if mresp.status() == 200 {
+                            println!("Login completo: MFA verificado.");
+                        } else {
+                            println!("MFA inválido ou expirado.");
+                        }
+                    }
+                    Err(e) => eprintln!("Erro ao contactar o signer para MFA: {}", e),
+                }
+            } else {
+                println!("Usuário ou senha inválidos.");
+            }
+        }
+        Err(e) => eprintln!("Erro ao contactar o signer para login: {}", e),
     }
 }
 
