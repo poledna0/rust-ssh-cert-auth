@@ -85,20 +85,19 @@ fn criar_nova_conta(){
 
         let csenha = read_password().expect("erro lendo senha");
 
-        // verifica se n esta vazia tb
         if senha == csenha && !senha.is_empty() {
 
-            // cria um novo objeto hasher
+            // cria objeto de cripto
             let mut hasher = Sha256::new();
-            // converte a String em um slice de bytes &[u8] e ja alimenta o hasher com os bys
+
+            // alimenta ele com os &[u8]
             hasher.update(senha.as_bytes());
 
-            // calcula o hash final baseado nos bytes ja fornecidos e retorna o digest (o array de bytes do hash).
+            // faz o hash deles e finaliza o objeto
             let result = hasher.finalize();
 
-            // transforma em hex para armazenar/mostrar
+            // muda para de by para hexa
             let hash_hex = format!("{:x}", result);
-
 
             print!("\nCole sua chave pública --> ");
             io::stdout().flush().expect("erro ao dar flush");
@@ -107,17 +106,21 @@ fn criar_nova_conta(){
             io::stdin().read_line(&mut pubkey).expect("erro ao ler a linha");
             let pubkey = pubkey.trim().to_string();
 
+            if !pubkey.is_empty(){
+                match db::criar_usuario(&nome_usuario, &hash_hex, &pubkey) {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("ERRO ao add usuario no BD: {}", e),
+                    }
+
+                println!("\nSenha e Chave Pública confirmadas. Usuário criado.");
+
+                break;
+            } else {
+                println!("ERRO: A chave pública está vazia. Por favor, cole uma chave válida.");
+            }
             
-            match db::criar_usuario(&nome_usuario, &hash_hex, &pubkey) {
-                    Ok(_) => {},
-                    Err(e) => eprintln!("ERRO ao add usuario no BD: {}", e),
-                }
-
-            println!("\nSenha confirmada");
-
-            break;
         } else {
-            println!("As senhas não são iguais (ou estão vazias). Tente novamente.");
+            println!("ERRO: As senhas não são iguais ou uma delas está vazia.");
         }
     }
 }
