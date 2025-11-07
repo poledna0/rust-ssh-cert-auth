@@ -1,5 +1,7 @@
 mod client;
 mod db;
+mod signer;
+
 fn main() {
     // inicia ou cria banco de dados
     match db::inicializar_db() {

@@ -6,7 +6,11 @@ edition = "2024"
 [dependencies]
 rusqlite = { version = "0.31", features = ["bundled"] }
 
-# para não mostrar a senha no terminal
 rpassword = "7.0"
 
+
 sha2 = "0.10.9"
+
+totp-lite = "2.0.1"
+koibumi-base32 = "0.0.3"
+rand = "0.8"
