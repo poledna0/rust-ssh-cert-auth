@@ -1,14 +1,7 @@
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, get};
 use serde::Deserialize;
-use totp_lite::{totp_custom, Sha1, DEFAULT_STEP};
-use std::time::SystemTime;
-use koibumi_base32 as base32;
-
-
 
 mod db;
-
-
 
 // #[derive(Deserialize)]  == essa struct pode ser convertida de JSON para Rust, Actix automaticamente converte isso num CreateUser
 #[derive(Deserialize)]
@@ -18,23 +11,6 @@ struct CreateUser {
     pubkey: String,
     mfa_secret: String,
 }
-
-
-
-fn valida_codigo_autenticador(codigo: &str) -> String {
-    let seconds: u64 = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    totp_custom::<Sha1>(
-        DEFAULT_STEP,
-        6,
-        &base32::decode(&codigo.trim().to_lowercase()).unwrap(),
-        seconds,
-    )
-}
-
-
 
 #[post("/create_user")]
 // info: web::Json<CreateUser> >>> Actix recebe o corpo JSON da requisição e faz o parse direto pra struct CreateUser
