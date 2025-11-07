@@ -6,7 +6,6 @@ pub struct Usuario {
     pub id: i32,
     pub nome_usuario: String,
     pub senha_hash: String,
-    pub chave_publica: String,
     pub mfa_secret: String,
 }
 
@@ -23,7 +22,6 @@ pub fn inicializar_db() -> Result<()> {
             id              INTEGER PRIMARY KEY,
             nome_usuario    TEXT NOT NULL UNIQUE,
             senha_hash      TEXT NOT NULL,
-            chave_publica   TEXT NOT NULL,
             mfa_secret      TEXT NOT NULL
         )",
         [],
@@ -33,14 +31,14 @@ pub fn inicializar_db() -> Result<()> {
 }
 
 #[allow(dead_code)]
-pub fn criar_usuario(username: &str, password_hash: &str, pub_key: &str, mfa_secret: &str) -> Result<()> {
-    println!("[db] criar_usuario: username='{}' pubkey='{}' mfa_secret='{}'", username, pub_key, mfa_secret);
+pub fn criar_usuario(username: &str, password_hash: &str, mfa_secret: &str) -> Result<()> {
+    println!("[db] criar_usuario: username='{}' mfa_secret='{}'", username, mfa_secret);
     let conn = Connection::open("dados.db")?;
 
     let res = conn.execute(
-        "INSERT INTO usuarios (nome_usuario, senha_hash, chave_publica, mfa_secret) 
-         VALUES (?1, ?2, ?3, ?4)",
-        [username, password_hash, pub_key, mfa_secret],
+        "INSERT INTO usuarios (nome_usuario, senha_hash, mfa_secret) 
+         VALUES (?1, ?2, ?3)",
+        [username, password_hash, mfa_secret],
     );
 
     match res {
@@ -60,7 +58,7 @@ pub fn buscar_usuario_para_login(username: &str) -> Result<Usuario> {
     let conn = Connection::open("dados.db")?;
 
     let mut stmt = conn.prepare(
-        "SELECT id, nome_usuario, senha_hash, chave_publica, mfa_secret FROM usuarios WHERE nome_usuario = ?1",
+        "SELECT id, nome_usuario, senha_hash, mfa_secret FROM usuarios WHERE nome_usuario = ?1",
     )?;
 
     let usuario_result = stmt.query_row([username], |row| {
@@ -68,8 +66,7 @@ pub fn buscar_usuario_para_login(username: &str) -> Result<Usuario> {
             id: row.get(0)?,
             nome_usuario: row.get(1)?,
             senha_hash: row.get(2)?,
-            chave_publica: row.get(3)?,
-            mfa_secret: row.get(4)?,
+            mfa_secret: row.get(3)?,
         })
     });
 

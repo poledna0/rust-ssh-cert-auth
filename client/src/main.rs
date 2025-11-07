@@ -5,19 +5,25 @@ use serde::Serialize;
 use rand::Rng;
 use koibumi_base32::encode;
 
-// para colocar no db
+// structs que vao ser enviadas pro servidor em formato JSON
 #[derive(Serialize)]
 struct CreateUser {
-    username: String,
-    password_hash: String,
-    pubkey: String,
-    mfa_secret: String,
+    username: String,      // nome do usuario
+    password_hash: String, // hash da senha
+    mfa_secret: String,   // segredo do autenticador
 }
 
+#[derive(Serialize)]
+struct EnviarChaveRequest {
+    username: String, // nome do usuario
+    pubkey: String,  // chave publica ssh do usuario
+}
+
+// gera um segredo aleatório pra usar no autenticador 2FA
 fn gerar_segredo() -> String {
     let mut rng = rand::thread_rng();
-    let bytes: [u8; 16] = rng.r#gen();
-    encode(&bytes)
+    let bytes: [u8; 16] = rng.r#gen(); // 16 bytes aleatorios
+    encode(&bytes) // converte pra base32 pq é o formato q o autenticador aceita
 }
 fn interface(){
 
@@ -98,43 +104,34 @@ fn criar_nova_conta(){
             // converte o resultado para uma string hexadecimal
             let hash_hex = format!("{:x}", result);
 
-            print!("\nCole sua chave pública --> ");
-            io::stdout().flush().expect("erro ao dar flush");
+            // gera codigo secreto da mfa
+            let mfa_secret = gerar_segredo();
 
-            let mut pubkey = String::new();
-            io::stdin().read_line(&mut pubkey).expect("erro ao ler a linha");
-            let pubkey = pubkey.trim().to_string();
+            println!("\nMFA secret (cole no autenticador): {}", mfa_secret);
 
-            if !pubkey.is_empty() {
-                // gera codigo secreto da mfa
-                let mfa_secret = gerar_segredo();
-                //let seconds = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+            // instanciar o struct CreateUser com os valores
+            let user = CreateUser { 
+                username: nome_usuario.clone(), 
+                password_hash: hash_hex,
+                mfa_secret,
+            };
 
-                println!("\nMFA secret (cole no autenticador): {}", mfa_secret);
-                //println!("Código atual (para adicionar agora): {}", mfa_code);
+            // transformar em JSON
+            let body = serde_json::to_string(&user).expect("erro serializando JSON");
 
-                // instanciar o struct CreateUser com os valores
-                let user = CreateUser { username: nome_usuario.clone(), password_hash: hash_hex, pubkey, mfa_secret };
-
-                // transformar em JSON
-                let body = serde_json::to_string(&user).expect("erro serializando JSON");
-
-                // enviar para o signer (inclui mfa_secret)
-                match ureq::post("http://127.0.0.1:8080/create_user").set("Content-Type", "application/json").send_string(&body) {
-                    Ok(resp) => {
-                        if resp.status() == 200 {
-                            println!("\nSenha, Chave Pública e MFA enviada. Usuário criado no signer.");
-                        } else {
-                            eprintln!("Erro do servidor");
-                        }
+            // enviar para o signer (inclui mfa_secret)
+            match ureq::post("http://127.0.0.1:8080/create_user").set("Content-Type", "application/json").send_string(&body) {
+                Ok(resp) => {
+                    if resp.status() == 200 {
+                        println!("\nSenha e MFA secret enviados. Usuário criado no signer.");
+                    } else {
+                        eprintln!("Erro do servidor");
                     }
-                    Err(e) => eprintln!("Erro ao contactar o signer: {}", e),
                 }
-
-                break;
-            } else {
-                println!("ERRO! A chave pública está vazia. Por favor, cole uma chave válida.");
+                Err(e) => eprintln!("Erro ao contactar o signer: {}", e),
             }
+
+            break;
         } else {
             println!("ERRO! As senhas não são iguais ou uma delas está vazia.");
         }
@@ -142,6 +139,13 @@ fn criar_nova_conta(){
 }
 
 fn login_conta() {
+    // enviar username e hash para o signer (/login)
+    #[derive(serde::Serialize)]
+    struct LoginReq<'a> {
+        username: &'a str,
+        password_hash: &'a str,
+    }
+
     print!("Digite o nome de usuário --> ");
     io::stdout().flush().expect("Erro a dar flush");
     let mut username = String::new();
@@ -158,12 +162,6 @@ fn login_conta() {
     let result = hasher.finalize();
     let hash_hex = format!("{:x}", result);
 
-    // enviar username e hash para o signer (/login)
-    #[derive(serde::Serialize)]
-    struct LoginReq<'a> {
-        username: &'a str,
-        password_hash: &'a str,
-    }
 
     let req = LoginReq { username: &username, password_hash: &hash_hex };
     let body = serde_json::to_string(&req).expect("erro serializando JSON");
@@ -190,12 +188,37 @@ fn login_conta() {
                 match ureq::post("http://127.0.0.1:8080/verify_mfa").set("Content-Type", "application/json").send_string(&mfa_body) {
                     Ok(mresp) => {
                         if mresp.status() == 200 {
-                            println!("Login completo: MFA verificado.");
+                            println!("Código do autenticador verificado! Agora cola tua chave pública SSH:");
+                            print!("Cola a chave aqui --> ");
+                            io::stdout().flush().expect("Erro a dar flush");
+                            let mut pubkey = String::new();
+                            io::stdin().read_line(&mut pubkey).expect("erro ao ler a linha");
+                            let pubkey = pubkey.trim().to_string();
+
+                            if !pubkey.is_empty() {
+                                // monta o JSON com usuario e chave
+                                let envio_chave = EnviarChaveRequest {
+                                    username: username.clone(),
+                                    pubkey: pubkey.clone(),
+                                };
+                                let json_chave = serde_json::to_string(&envio_chave).expect("erro convertendo chave pra JSON");
+
+                                // envia pro servidor
+                                match ureq::post("http://127.0.0.1:8080/submit_pubkey")
+                                    .set("Content-Type", "application/json")
+                                    .send_string(&json_chave) 
+                                {
+                                    Ok(_) => println!("Pronto! Login completo e chave SSH enviada com sucesso."),
+                                    Err(e) => eprintln!("deu erro ao enviar a chave SSH: {}", e),
+                                }
+                            } else {
+                                println!("Erro: vc não colocou chave nenhuma!");
+                            }
                         } else {
-                            println!("MFA inválido ou expirado.");
+                            println!("Código do autenticador inválido ou já expirou, tenta de novo.");
                         }
                     }
-                    Err(e) => eprintln!("Erro ao contactar o signer para MFA: {}", e),
+                    Err(e) => eprintln!("Erro ao falar com o servidor pra verificar o código: {}", e),
                 }
             } else {
                 println!("Usuário ou senha inválidos.");
