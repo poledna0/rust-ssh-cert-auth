@@ -1,7 +1,8 @@
 use rusqlite::{Connection, Result};
 
 #[derive(Debug)]
-struct Usuario {
+#[allow(dead_code)]
+pub struct Usuario {
     pub id: i32,
     pub nome_usuario: String,
     pub senha_hash: String,
@@ -26,7 +27,7 @@ pub fn inicializar_db() -> Result<()> {
     Ok(())
 }
 
-
+#[allow(dead_code)]
 pub fn criar_usuario(username: &str, password_hash: &str, pub_key: &str) -> Result<()> {
     let conn = Connection::open("dados.db")?;
     
@@ -39,7 +40,7 @@ pub fn criar_usuario(username: &str, password_hash: &str, pub_key: &str) -> Resu
     Ok(())
 }
 
-
+#[allow(dead_code)]
 pub fn buscar_usuario_para_login(username: &str) -> Result<Usuario> {
     let conn = Connection::open("dados.db")?;
     
