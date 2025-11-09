@@ -32,5 +32,8 @@ Com esse certificado, o usuário pode se conectar ao servidor SSH.
 ---
 
 ```bash
-sudo apt install libsqlite3-dev
+sudo apt-get install libssl-dev pkg-config<br>
+sudo apt install libsqlite3-dev<br>
+pip install flask cryptography<br>
+
 ```

@@ -125,10 +125,43 @@ async fn verify_mfa(info: web::Json<MfaRequest>) -> impl Responder {
 #[post("/submit_pubkey")]
 async fn enviar_chave_publica(info: web::Json<ChavePublicaRequest>) -> impl Responder {
     println!("[http] POST /submit_pubkey");
-
-    // aq esta o valor da chave publica recebida do cliente, dps vou mandar isso para uma Vault
     println!("[http] Chave pública recebida do usuário '{}': {}", info.username, info.pubkey);
-    HttpResponse::Ok().body("Chave pública recebida")
+    
+    // Envia a chave pública para a Vault CA assinar
+    // cria um novo cliente http
+    let client = reqwest::Client::new();
+    // o cliente faz um post para a vault com a chave q o cliente mandou para o signer
+    let vault_response = match client.post("http://localhost:5000/sign")
+        .json(&serde_json::json!({
+            "public_key": info.pubkey
+        }))
+        .send() // envia
+        // espera a resposta da vault
+        .await {
+            Ok(response) => response,
+            Err(e) => {
+                eprintln!("[http] Erro ao contactar Vault CA: {}", e);
+                return HttpResponse::InternalServerError().body("Erro ao contactar Vault CA");
+            }
+        };
+
+    // verifica se a resposta foi bem sucedida e le o PEM como texto
+    if vault_response.status().is_success() {
+        match vault_response.text().await {
+            Ok(pem) => {
+                println!("[http] Certificado PEM recebido da Vault CA ({} bytes)", pem.len());
+                // Repassa o PEM cru para o cliente (tipo cat no terminal vai mandar a string pura)
+                HttpResponse::Ok().content_type("application/x-pem-file").body(pem)
+            }
+            Err(e) => {
+                eprintln!("[http] Erro ao ler resposta da Vault como texto: {}", e);
+                HttpResponse::InternalServerError().body("Erro ao processar resposta da Vault")
+            }
+        }
+    } else {
+        eprintln!("[http] Vault CA retornou erro: {:?}", vault_response.status());
+        HttpResponse::InternalServerError().body("Erro ao assinar certificado")
+    }
 }
 
 // rota padrao para saber se esta rodando o servidor web

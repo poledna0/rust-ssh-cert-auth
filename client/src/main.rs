@@ -205,9 +205,17 @@ fn login_conta() {
                                 // envia pro servidor
                                 match ureq::post("http://127.0.0.1:8080/submit_pubkey")
                                     .set("Content-Type", "application/json")
-                                    .send_string(&json_chave) 
+                                    .send_string(&json_chave)
                                 {
-                                    Ok(_) => println!("Pronto! Login completo e chave SSH enviada com sucesso."),
+                                    Ok(response) => {
+                                        // le a resposta (certificado PEM) em string o .into_string() faz de byte pra string, recebe [u8] e vura string
+                                        match response.into_string() {
+                                            Ok(cert_pem) => {
+                                                println!("{}", cert_pem);
+                                            }
+                                            Err(e) => eprintln!("Erro ao ler resposta do signer: {}", e),
+                                        }
+                                    }
                                     Err(e) => eprintln!("deu erro ao enviar a chave SSH: {}", e),
                                 }
                             } else {
