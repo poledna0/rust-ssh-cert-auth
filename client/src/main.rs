@@ -4,6 +4,7 @@ use sha2::{Sha256, Digest};
 use serde::Serialize;
 use rand::Rng;
 use koibumi_base32::encode;
+use std::fs::File;
 
 // structs que vao ser enviadas pro servidor em formato JSON
 #[derive(Serialize)]
@@ -18,6 +19,8 @@ struct EnviarChaveRequest {
     username: String, // nome do usuario
     pubkey: String,  // chave publica ssh do usuario
 }
+// caminho para onde vai salvar os certificados retornados pelo signer
+static CAMINHO: &str = "/home/pato/Desktop/rust-ssh-cert-auth/client/certificado-client";
 
 // gera um segredo aleatório pra usar no autenticador 2FA
 fn gerar_segredo() -> String {
@@ -25,6 +28,8 @@ fn gerar_segredo() -> String {
     let bytes: [u8; 16] = rng.r#gen(); // 16 bytes aleatorios
     encode(&bytes) // converte pra base32 pq é o formato q o autenticador aceita
 }
+
+
 fn interface(){
 
     let mut buffer: String = String::new();
@@ -200,7 +205,9 @@ fn login_conta() {
                                     username: username.clone(),
                                     pubkey: pubkey.clone(),
                                 };
-                                let json_chave = serde_json::to_string(&envio_chave).expect("erro convertendo chave pra JSON");
+
+                                let json_chave =
+                                    serde_json::to_string(&envio_chave).expect("erro convertendo chave pra JSON");
 
                                 // envia pro servidor
                                 match ureq::post("http://127.0.0.1:8080/submit_pubkey")
@@ -208,17 +215,29 @@ fn login_conta() {
                                     .send_string(&json_chave)
                                 {
                                     Ok(response) => {
-                                        // le a resposta (certificado PEM) em string o .into_string() faz de byte pra string, recebe [u8] e vura string
+                                        // lê a resposta >> certificado PEM
                                         match response.into_string() {
                                             Ok(cert_pem) => {
-                                                println!("{}", cert_pem);
+
+                                                // salva o certificado PEM em um arquivo no disco
+                                                let caminho = format!("{}/certificado_{}.pem", CAMINHO, username);
+                                                match File::create(&caminho) {
+                                                    Ok(mut file) => {
+                                                        if let Err(e) = file.write_all(cert_pem.as_bytes()) {
+                                                            eprintln!("Erro ao salvar o certificado: {}", e);
+                                                        } else {
+                                                            println!("Certificado salvo em: {}", caminho);
+                                                        }
+                                                    }
+                                                    Err(e) => eprintln!("Erro criando arquivo de certificado: {}", e),
+                                                }
                                             }
                                             Err(e) => eprintln!("Erro ao ler resposta do signer: {}", e),
                                         }
                                     }
-                                    Err(e) => eprintln!("deu erro ao enviar a chave SSH: {}", e),
+                                    Err(e) => eprintln!("Erro ao enviar a chave SSH: {}", e),
                                 }
-                            } else {
+                            }else {
                                 println!("Erro: vc não colocou chave nenhuma!");
                             }
                         } else {
