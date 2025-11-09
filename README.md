@@ -20,7 +20,6 @@ Cada componente representa uma parte do processo de autenticação via certifica
 - **client/** → Gera ou envia uma chave pública e solicita certificado.  
 - **signer/** → Autentica o usuário (MFA) e pede assinatura ao Vault.  
 - **vault/** → Autoridade certificadora (CA) que assina as chaves.  
-- **server/** → Servidor SSH configurado para aceitar certificados emitidos pela CA.
 
 ---
 
