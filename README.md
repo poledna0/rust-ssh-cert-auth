@@ -8,7 +8,7 @@
 Projeto desenvolvido para a disciplina **Segurança de Sistemas**.  
 Implementa o fluxo de autenticação SSH com certificados temporários, conforme o diagrama do professor (imagem abaixo).
 
-![Diagrama do Sistema](image-4.png)
+![Diagrama do Sistema](image.png)
 
 O sistema é feito inteiramente em **Rust**, usando o framework **Actix**.  
 Cada componente representa uma parte do processo de autenticação via certificado digital.
