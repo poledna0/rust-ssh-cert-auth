@@ -20,7 +20,7 @@ struct EnviarChaveRequest {
     pubkey: String,  // chave publica ssh do usuario
 }
 // caminho para onde vai salvar os certificados retornados pelo signer
-static CAMINHO: &str = "/home/pato/Desktop/rust-ssh-cert-auth/client/certificado-client";
+static CAMINHO: &str = "/home/utka/ray/rust-ssh-cert-auth/client/certificado-client";
 
 // gera um segredo aleatório pra usar no autenticador 2FA
 fn gerar_segredo() -> String {

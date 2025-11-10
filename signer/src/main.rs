@@ -133,7 +133,9 @@ async fn enviar_chave_publica(info: web::Json<ChavePublicaRequest>) -> impl Resp
     // o cliente faz um post para a vault com a chave q o cliente mandou para o signer
     let vault_response = match client.post("http://localhost:5000/sign")
         .json(&serde_json::json!({
-            "public_key": info.pubkey
+            "public_key": info.pubkey,
+            "username": info.username
+
         }))
         .send() // envia
         // espera a resposta da vault
@@ -144,6 +146,8 @@ async fn enviar_chave_publica(info: web::Json<ChavePublicaRequest>) -> impl Resp
                 return HttpResponse::InternalServerError().body("Erro ao contactar Vault CA");
             }
         };
+        println!("[http] Enviando chave pública do usuário '{}' para assinatura", info.username);
+
 
     // verifica se a resposta foi bem sucedida e le o PEM como texto
     if vault_response.status().is_success() {
