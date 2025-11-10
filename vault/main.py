@@ -85,10 +85,18 @@ def sign_key():
         with open("ca_cert.pem", "rb") as cert_file:
             ca_cert = x509.load_pem_x509_certificate(cert_file.read())
 
+        # Parseia a chave pública SSH enviada
+        try:
+            ssh_user_public_key_object = serialization.load_ssh_public_key(
+                ssh_public_key.encode('utf-8')
+            )
+        except Exception as e:
+            return jsonify({'error': 'Chave pública SSH inválida: {}'.format(str(e))}), 400
+
         # Cria certificado para a chave pública
         builder = x509.CertificateBuilder()
 
-        # Define o nome do subject (pode personalizar conforme necessário)
+        # Define o nome do subject
         subject = x509.Name([
             x509.NameAttribute(NameOID.COMMON_NAME, u"SSH User")
         ])
@@ -98,7 +106,7 @@ def sign_key():
         ).issuer_name(
             ca_cert.subject
         ).public_key(
-            ca_cert.public_key()
+            ssh_user_public_key_object
         ).serial_number(
             x509.random_serial_number()
         ).not_valid_before(
