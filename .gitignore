@@ -25,4 +25,4 @@
 *dados.db
 
 # chaves da CA, apenas por segurança, mas como é um projeto de estudo, poderia ser ignorado
-*.pem
+ca_key*
