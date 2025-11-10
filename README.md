@@ -39,8 +39,6 @@ pip install -r requirements.txt
 ```
 
 ```bash
-sudo apt-get install libssl-dev pkg-config
-sudo apt install libsqlite3-dev
-pip install flask cryptography
+sudo apt install libsqlite3-dev libssl-dev pkg-config
 
 ```
