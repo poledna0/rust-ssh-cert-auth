@@ -13,7 +13,6 @@ CA_KEY_PATH = BASE_DIR / "ca_key"  # ssh-keygen não precisa de extensão
 CA_PUB_KEY_PATH = BASE_DIR / "ca_key.pub"
 
 def validate_ssh_public_key(key_string):
-    """Valida formato básico de uma chave SSH"""
     # Formato básico: tipo chave-base64 comentário
     ssh_key_pattern = r'^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)\s+[A-Za-z0-9+/]+[=]{0,3}(\s+[^\n]+)?$'
     return bool(re.match(ssh_key_pattern, key_string.strip()))
@@ -73,10 +72,7 @@ def sign_key():
         ], capture_output=True, text=True)
 
         if result.returncode != 0:
-            return jsonify({
-                'error': 'Erro ao assinar chave SSH',
-                'details': result.stderr
-            }), 500
+            return jsonify({'error': 'Erro ao assinar chave SSH','details': result.stderr}), 500
 
         # Verifica se o certificado foi gerado
         if not cert_path.exists():
@@ -85,10 +81,7 @@ def sign_key():
         # Lê o certificado SSH gerado
         cert_data = cert_path.read_text()
 
-        return jsonify({
-            "username": username,
-            "certificate": cert_data
-        })
+        return jsonify({"username": username,"certificate": cert_data})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -105,7 +98,5 @@ def sign_key():
                         shutil.rmtree(path)
             except Exception as e:
                 print(f"Erro ao limpar arquivo temporário {path}: {e}")
-
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
