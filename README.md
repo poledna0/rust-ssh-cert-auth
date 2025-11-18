@@ -2,7 +2,7 @@
 
 Sistema de autenticação SSH baseado em **Certificados Digitais Temporários**. O projeto utiliza uma arquitetura de serviços em Rust para garantir que o acesso ao servidor SSH seja feito apenas por usuários autenticados (Senha + MFA) e com chaves assinadas por tempo limitado.
 
-![Fluxo do Sistema](image.png)
+![Fluxo do Sistema](relatorio/imgs/7_readme.png)
 
 ## Arquitetura
 
