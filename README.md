@@ -67,6 +67,9 @@ sudo apt install libsqlite3-dev libssl-dev pkg-config
 ```
 
 # TODOS OS COMANDOS A SEGUIR DEVEM SER FEITOS NA RAIZ DO PROJETO!!!! 
+## O usuario da maquinha deve de ser o mesmo do usuario cria na aba client
+ Exemplo: ssh batata@localhost.
+ No client na aba de criar conta, o nome inserido deve de ser batata. 
 
 ---
 1. **Iniciar o Vault:**
