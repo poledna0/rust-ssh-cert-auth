@@ -63,7 +63,11 @@ Atua como a Autoridade Certificadora isolada.
 Certifique-se de ter o Rust, OpenSSH e as libs do SQLite instaladas. Execute os componentes em terminais separados:
 ```bash
 sudo apt install libsqlite3-dev libssl-dev pkg-config
+
 ```
+
+# TODOS OS COMANDOS A SEGUIR DEVEM SER FEITOS NA RAIZ DO PROJETO!!!! 
+
 ---
 1. **Iniciar o Vault:**
    ```bash
@@ -80,3 +84,9 @@ sudo apt install libsqlite3-dev libssl-dev pkg-config
    cargo run --bin signer
    ```
 ---
+
+* Não esquecer
+```bash
+chmod 600 ca_key
+chmod 644 ca_key.pub
+```
