@@ -67,7 +67,7 @@ sudo apt install libsqlite3-dev libssl-dev pkg-config
 ```
 
 # TODOS OS COMANDOS A SEGUIR DEVEM SER FEITOS NA RAIZ DO PROJETO!!!! 
-## O usuario da maquinha destino ssh deve de ser o mesmo do usuario cria na aba client
+### O usuario da maquinha destino ssh deve de ser o mesmo nome do usuario criado na aba client
  Exemplo: ssh batata@localhost é o destino 
  
  No client na aba de criar conta, o nome inserido deve de ser batata. 
